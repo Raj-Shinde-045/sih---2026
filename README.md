@@ -82,25 +82,29 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 Use these credentials to explore all three portals, or use the **1-Click Demo Login** buttons on the login screen for instant access.
 
-### 👤 Patient
-| Field | Value |
-|---|---|
-| Email | `patient@tapcare.in` |
-| Password | `tapcare@123` |
+All accounts share the password: **`tapcare@123`**
 
-### 👨‍⚕️ Doctor
-| Field | Value |
-|---|---|
-| Email | `doctor@tapcare.in` |
-| Password | `tapcare@123` |
+### 👤 Patients
+| Name | Email | Blood Group |
+|---|---|---|
+| Rahul Sharma | `patient@tapcare.in` | O+ |
+| Priya Mehta | `priya.patient@tapcare.in` | A+ |
+| Arjun Nair | `arjun.patient@tapcare.in` | B+ |
+
+### 👨‍⚕️ Doctors
+| Name | Email | Specialty |
+|---|---|---|
+| Dr. Sarah Jenkins | `doctor@tapcare.in` | General Physician |
+| Dr. William Davies | `cardiac.doctor@tapcare.in` | Cardiologist |
+| Dr. James Wilson | `ortho.doctor@tapcare.in` | Orthopedic Surgeon |
 
 ### 🔧 Admin
-| Field | Value |
+| Email | Password |
 |---|---|
-| Email | `admin@tapcare.in` |
-| Password | `tapcare@123` |
+| `admin@tapcare.in` | `tapcare@123` |
 
-> **💡 Tip:** After logging in as a Patient, click the NFC scan card to simulate a card tap. If your vault is empty, click **"Inject Demo History"** to populate it with 8 realistic historical records!
+> **💡 Tip — Seeding the Database:**
+> After setting up the project, log in as **Admin** and click the **"🚀 Run Seed Now"** banner at the top of the dashboard. This will automatically create all 7 demo accounts in Firebase Auth AND populate 25+ realistic consultation records across 3 patients — ready to impress the judges in seconds!
 
 ---
 
