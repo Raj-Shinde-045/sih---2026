@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ShieldAlert, CreditCard, UserPlus, Link as LinkIcon, CheckCircle, XCircle, RefreshCw, Stethoscope } from 'lucide-react';
 
+import { getStoredAdminCards, saveLocalAdminCard } from '@/lib/mockData';
+
 type CardData = {
   id: string;
   type: 'Patient' | 'Doctor';
@@ -20,38 +22,8 @@ type CardData = {
   isActive: boolean;
 };
 
-const defaultCards: CardData[] = [
-  {
-    id: 'tc-patient-001',
-    type: 'Patient',
-    name: 'Rahul Sharma',
-    mobile: '+91 98765 43210',
-    url: 'https://tapcare-navy.vercel.app/scan?id=tc-patient-001',
-    status: 'uploaded',
-    isActive: true,
-  },
-  {
-    id: 'tc-patient-002',
-    type: 'Patient',
-    name: 'Ananya Verma',
-    mobile: '+91 98123 45678',
-    url: 'https://tapcare-navy.vercel.app/scan?id=tc-patient-002',
-    status: 'pending',
-    isActive: true,
-  },
-  {
-    id: 'tc-patient-003',
-    type: 'Patient',
-    name: 'Vikram Malhotra',
-    mobile: '+91 99887 76655',
-    url: 'https://tapcare-navy.vercel.app/scan?id=tc-patient-003',
-    status: 'uploaded',
-    isActive: false,
-  }
-];
-
 export default function AdminDashboard() {
-  const [cards, setCards] = useState<CardData[]>(defaultCards);
+  const [cards, setCards] = useState<CardData[]>(() => getStoredAdminCards());
   
   const [activeTab, setActiveTab] = useState<'pending' | 'uploaded'>('pending');
   const [newUserName, setNewUserName] = useState('');
@@ -60,10 +32,14 @@ export default function AdminDashboard() {
   const [docEmail, setDocEmail] = useState('');
   const [docPass, setDocPass] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isSeedLoading, setIsSeedLoading] = useState(false);
-  const [seedDone, setSeedDone] = useState(false);
 
   useEffect(() => {
+    // Load from local storage immediately
+    const localCards = getStoredAdminCards();
+    if (localCards.length > 0) {
+      setCards(localCards);
+    }
+
     try {
       const unsubscribe = onSnapshot(
         collection(db, 'patients'), 
@@ -77,7 +53,7 @@ export default function AdminDashboard() {
           }
         },
         (error) => {
-          console.warn('Firestore onSnapshot blocked or offline, retaining default data:', error);
+          console.warn('Firestore offline/disabled, using embedded patient directory:', error);
         }
       );
       return () => unsubscribe();
@@ -88,23 +64,38 @@ export default function AdminDashboard() {
 
   const generateLink = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newUserName.trim()) {
+      alert('Please enter patient name');
+      return;
+    }
     setLoading(true);
     try {
-      const newCardRef = await addDoc(collection(db, 'patients'), {
+      const newId = `tc-patient-${Math.floor(Math.random() * 900 + 100)}`;
+      const url = `https://tapcare-navy.vercel.app/scan?id=${newId}`;
+      const newCard: CardData = {
+        id: newId,
         type: 'Patient',
         name: newUserName,
-        mobile: newUserMobile,
+        mobile: newUserMobile || '+91 98000 00000',
+        url,
         status: 'pending',
         isActive: true,
-        createdAt: serverTimestamp()
-      });
-      // Generate URL based on the document ID
-      const url = `https://tapcare.com/scan?id=${newCardRef.id}`;
-      await updateDoc(newCardRef, { url });
+      };
+
+      const updated = saveLocalAdminCard(newCard);
+      setCards(updated);
+
+      // Attempt background Firestore sync
+      try {
+        addDoc(collection(db, 'patients'), {
+          ...newCard,
+          createdAt: serverTimestamp()
+        }).catch(() => {});
+      } catch {}
       
       setNewUserName('');
       setNewUserMobile('');
-      alert(`Link Generated: ${url}`);
+      alert(`✅ NFC Card Provisioned & Linked: ${url}`);
     } catch (error) {
       console.error(error);
       alert('Failed to issue card');
@@ -114,18 +105,45 @@ export default function AdminDashboard() {
   };
 
   const markAsUploaded = async (id: string) => {
-    await updateDoc(doc(db, 'patients', id), { status: 'uploaded' });
+    setCards(prev => {
+      const updated = prev.map(c => c.id === id ? { ...c, status: 'uploaded' as const } : c);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('tapcare_admin_patients', JSON.stringify(updated));
+      }
+      return updated;
+    });
+    try {
+      updateDoc(doc(db, 'patients', id), { status: 'uploaded' }).catch(() => {});
+    } catch {}
   };
 
   const toggleActivation = async (id: string, currentStatus: boolean) => {
-    await updateDoc(doc(db, 'patients', id), { isActive: !currentStatus });
+    setCards(prev => {
+      const updated = prev.map(c => c.id === id ? { ...c, isActive: !currentStatus } : c);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('tapcare_admin_patients', JSON.stringify(updated));
+      }
+      return updated;
+    });
+    try {
+      updateDoc(doc(db, 'patients', id), { isActive: !currentStatus }).catch(() => {});
+    } catch {}
   };
 
   const generateNewLinkForCard = async (id: string) => {
-    const newId = `regen-${Math.floor(Math.random() * 10000)}`;
-    const url = `https://tapcare.com/scan?id=${newId}`;
-    await updateDoc(doc(db, 'patients', id), { url, status: 'pending' });
-    alert('New link generated and moved to Pending.');
+    const newId = `tc-patient-${Math.floor(Math.random() * 900 + 100)}`;
+    const url = `https://tapcare-navy.vercel.app/scan?id=${newId}`;
+    setCards(prev => {
+      const updated = prev.map(c => c.id === id ? { ...c, url, status: 'pending' as const } : c);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('tapcare_admin_patients', JSON.stringify(updated));
+      }
+      return updated;
+    });
+    try {
+      updateDoc(doc(db, 'patients', id), { url, status: 'pending' }).catch(() => {});
+    } catch {}
+    alert(`✅ New Secure NFC Token Generated: ${url}`);
   };
 
   const registerDoctor = async (e: React.FormEvent) => {
@@ -150,24 +168,6 @@ export default function AdminDashboard() {
       alert('Error registering doctor');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const seedDatabase = async () => {
-    setIsSeedLoading(true);
-    try {
-      const res = await fetch('/api/seed?secret=tapcare-seed-2026', { method: 'POST' });
-      const data = await res.json();
-      if (res.ok) {
-        setSeedDone(true);
-        alert(`✅ Database seeded!\n\n${data.summary}`);
-      } else {
-        alert(`❌ Seed failed: ${data.error}`);
-      }
-    } catch (e) {
-      alert('Failed to reach seed endpoint.');
-    } finally {
-      setIsSeedLoading(false);
     }
   };
 

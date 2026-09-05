@@ -39,12 +39,34 @@ export default function DoctorDashboard() {
                 </p>
               </div>
 
-              <Link href="/doctor/workspace/tc-patient-001" className="w-full">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-11 font-medium shadow-lg shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/30 transition-all">
-                  <UserCheck className="mr-2 h-4 w-4" /> Simulate Patient Tap (Rahul Sharma)
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
+              <div className="w-full space-y-2.5 pt-2">
+                <Link href="/doctor/workspace/tc-patient-001" className="block w-full">
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-11 font-medium shadow-md shadow-blue-600/20 hover:shadow-lg transition-all flex items-center justify-between px-4">
+                    <span className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4" /> Tap Rahul Sharma (B+)
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+
+                <Link href="/doctor/workspace/tc-patient-002" className="block w-full">
+                  <Button variant="outline" className="w-full border-slate-200 hover:bg-slate-100 text-slate-800 rounded-xl h-10 font-medium transition-all flex items-center justify-between px-4">
+                    <span className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4 text-blue-600" /> Tap Ananya Verma (A+)
+                    </span>
+                    <ArrowRight className="h-4 w-4 text-slate-400" />
+                  </Button>
+                </Link>
+
+                <Link href="/doctor/workspace/tc-patient-003" className="block w-full">
+                  <Button variant="outline" className="w-full border-slate-200 hover:bg-slate-100 text-slate-800 rounded-xl h-10 font-medium transition-all flex items-center justify-between px-4">
+                    <span className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4 text-blue-600" /> Tap Vikram Malhotra (O+)
+                    </span>
+                    <ArrowRight className="h-4 w-4 text-slate-400" />
+                  </Button>
+                </Link>
+              </div>
 
             </CardContent>
           </Card>

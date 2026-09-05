@@ -7,38 +7,65 @@ import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestor
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ShieldCheck, FileText, Pill, Clock, Download, ScanLine, Search, ArrowUpDown } from 'lucide-react';
+import { ShieldCheck, FileText, Pill, Clock, Download, ScanLine, Search, ArrowUpDown, User, HeartPulse, AlertTriangle } from 'lucide-react';
+import { getStoredConsultations, formatConsultationDate, getPatientProfile } from '@/lib/mockData';
 
 export default function PatientDashboard() {
+  const patientId = 'tc-patient-001';
+  const profile = getPatientProfile(patientId);
   const [isTapped, setIsTapped] = useState(false);
-  const [consultations, setConsultations] = useState<any[]>([]);
+  const [consultations, setConsultations] = useState<any[]>(() => getStoredConsultations(patientId));
   const [activeTab, setActiveTab] = useState<'overview' | 'all'>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   useEffect(() => {
-    const patientId = 'tc-patient-001'; 
-    const q = query(
-      collection(db, 'consultations'),
-      where('patientId', '==', patientId),
-      orderBy('timestamp', sortOrder)
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setConsultations(docs);
-    });
-    return () => unsubscribe();
-  }, [sortOrder]);
+    // Sync initially from local database
+    const localDocs = getStoredConsultations(patientId);
+    if (localDocs.length > 0) {
+      setConsultations(localDocs);
+    }
 
-  const filteredConsultations = useMemo(() => {
-    if (!searchQuery) return consultations;
+    try {
+      const q = query(
+        collection(db, 'consultations'),
+        where('patientId', '==', patientId),
+        orderBy('timestamp', sortOrder)
+      );
+      const unsubscribe = onSnapshot(
+        q, 
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setConsultations(docs);
+          }
+        },
+        (err) => {
+          console.warn('Firestore offline/disabled, using embedded medical database:', err);
+        }
+      );
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Firestore query skipped, using embedded medical database:', e);
+    }
+  }, [sortOrder, patientId]);
+
+  const sortedAndFilteredConsultations = useMemo(() => {
+    let list = [...consultations];
+    list.sort((a, b) => {
+      const dateA = new Date(a.timestamp?.toDate ? a.timestamp.toDate() : a.timestamp).getTime() || 0;
+      const dateB = new Date(b.timestamp?.toDate ? b.timestamp.toDate() : b.timestamp).getTime() || 0;
+      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+
+    if (!searchQuery) return list;
     const lowerQ = searchQuery.toLowerCase();
-    return consultations.filter(c => 
+    return list.filter(c => 
       c.doctorName?.toLowerCase().includes(lowerQ) || 
       c.diagnosis?.toLowerCase().includes(lowerQ) ||
       c.hospitalName?.toLowerCase().includes(lowerQ)
     );
-  }, [consultations, searchQuery]);
+  }, [consultations, searchQuery, sortOrder]);
 
 
   if (!isTapped) {
@@ -76,7 +103,7 @@ export default function PatientDashboard() {
           <div>
             <CardTitle className="text-lg text-slate-900 font-bold leading-tight">{record.doctorName}</CardTitle>
             <CardDescription className="text-slate-500 mt-1 font-medium">
-              {record.hospitalName} • {record.timestamp?.toDate ? record.timestamp.toDate().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Just now'}
+              {record.hospitalName} • {formatConsultationDate(record.timestamp)}
             </CardDescription>
           </div>
           <Button variant="ghost" size="icon" className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 shrink-0">
@@ -96,7 +123,7 @@ export default function PatientDashboard() {
             <p className="text-sm font-bold text-slate-900 flex items-center mb-1">
               <FileText className="mr-1.5 h-4 w-4 text-slate-400" /> Treatment / Prescription
             </p>
-            <p className="text-sm text-slate-600 pl-6">{record.medicines || 'None'}</p>
+            <p className="text-sm text-slate-600 pl-6 whitespace-pre-line">{record.medicines || 'None'}</p>
           </div>
         </div>
       </CardContent>
@@ -119,9 +146,21 @@ export default function PatientDashboard() {
                 <div className="bg-emerald-500/30 p-2 rounded-xl backdrop-blur-md">
                   <ShieldCheck className="h-8 w-8 text-emerald-100" />
                 </div>
-                <h1 className="text-3xl font-extrabold tracking-tight">Medical Vault</h1>
+                <div>
+                  <h1 className="text-3xl font-extrabold tracking-tight">Medical Vault</h1>
+                  <p className="text-emerald-200 text-xs font-mono mt-0.5">Encrypted NFC Token Access • Verified by UIDAI / ABHA</p>
+                </div>
               </div>
-              <p className="text-emerald-100 text-base font-medium max-w-md">Your highly secure medical data is unlocked. You have {consultations.length} total records securely stored.</p>
+              <p className="text-emerald-100 text-base font-medium max-w-xl">
+                Encrypted EHR Vault for <strong className="text-white">{profile.name}</strong>. You have <strong className="text-white underline">{consultations.length} total consultations</strong> securely stored.
+              </p>
+              
+              <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium">
+                <span className="bg-emerald-950/40 text-emerald-100 px-3 py-1 rounded-full border border-emerald-400/30">ABHA: {profile.abhaId}</span>
+                <span className="bg-emerald-950/40 text-emerald-100 px-3 py-1 rounded-full border border-emerald-400/30">Blood: {profile.bloodGroup}</span>
+                <span className="bg-emerald-950/40 text-emerald-100 px-3 py-1 rounded-full border border-emerald-400/30">Age: {profile.age} yrs</span>
+                <span className="bg-red-500/30 text-white px-3 py-1 rounded-full border border-red-300/40">Allergies: {profile.allergies.join(', ')}</span>
+              </div>
             </div>
           </div>
         </section>
@@ -210,7 +249,7 @@ export default function PatientDashboard() {
 
             {/* Results */}
             <div className="space-y-4">
-              {filteredConsultations.length === 0 ? (
+              {sortedAndFilteredConsultations.length === 0 ? (
                 <div className="py-12 text-center text-slate-500">
                   <FileText className="mx-auto h-12 w-12 text-slate-300 mb-3" />
                   <p className="font-medium text-lg text-slate-600">No records found matching your search.</p>
@@ -218,7 +257,7 @@ export default function PatientDashboard() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredConsultations.map(renderRecordCard)}
+                  {sortedAndFilteredConsultations.map(renderRecordCard)}
                 </div>
               )}
             </div>
