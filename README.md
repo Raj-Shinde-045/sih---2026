@@ -103,8 +103,20 @@ All accounts share the password: **`tapcare@123`**
 |---|---|
 | `admin@tapcare.in` | `tapcare@123` |
 
-> **💡 Tip — Seeding the Database:**
-> After setting up the project, log in as **Admin** and click the **"🚀 Run Seed Now"** banner at the top of the dashboard. This will automatically create all 7 demo accounts in Firebase Auth AND populate 25+ realistic consultation records across 3 patients — ready to impress the judges in seconds!
+> **💡 Instant Zero-Setup Demo:**
+> The database comes **pre-loaded with extensive, realistic clinical histories** across multiple patients (Cardiology, Endocrinology, Pulmonology, Orthopedics) with ABHA IDs, allergies, and prescriptions. Everything works out-of-the-box with zero delays and zero configuration!
+
+---
+
+## 🎯 3-Minute Winning Demo Pitch for Judges
+
+| Step | Action | Key Talking Point for Judges |
+|---|---|---|
+| **1. The Problem** | Open landing page | *"Over 70% of Indian patients struggle with fragmented paper records and lost prescriptions across different hospitals."* |
+| **2. Patient Vault** | Click **"Patient Demo"** → Tap card | *"Patient taps their encrypted NFC card to unlock their ABHA-linked EHR vault. Notice full multi-hospital medical history, medication dosages, and instant search."* |
+| **3. Doctor Workspace** | Click **"Doctor Demo"** → Tap Rahul Sharma | *"Doctor taps the patient's card. Instant access with automatic clinical safety alert for documented Penicillin/Sulfa allergies, preventing fatal adverse drug reactions."* |
+| **4. Live Consultation** | Add diagnosis & click **"Save & Push"** | *"Doctor records new prescription; it signs and updates directly to the patient's vault with end-to-end integrity."* |
+| **5. Lost Card Security** | Open **Admin Portal** | *"If a patient loses their physical NFC card, admin can instantly deactivate the token or re-issue a new secure cryptographic link."* |
 
 ---
 
