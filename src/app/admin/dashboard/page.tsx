@@ -185,28 +185,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Seed Banner */}
-        {!seedDone && (
-          <div className="mb-8 p-5 rounded-2xl border-2 border-dashed border-indigo-300 bg-indigo-50 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-              <p className="font-bold text-indigo-900 text-lg">🌱 Seed Demo Database</p>
-              <p className="text-indigo-700 text-sm mt-0.5">Creates 3 patients, 3 doctors, 1 admin and injects 25+ realistic consultation records for a convincing demo.</p>
-            </div>
-            <Button
-              onClick={seedDatabase}
-              disabled={isSeedLoading}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3 rounded-xl shadow-md shrink-0"
-            >
-              {isSeedLoading ? '⏳ Seeding...' : '🚀 Run Seed Now'}
-            </Button>
-          </div>
-        )}
-        {seedDone && (
-          <div className="mb-8 p-5 rounded-2xl border-2 border-emerald-300 bg-emerald-50 flex items-center gap-4">
-            <span className="text-2xl">✅</span>
-            <p className="font-bold text-emerald-800">Database seeded successfully! All demo accounts and records are live.</p>
-          </div>
-        )}
+
 
         <div className="flex flex-col gap-10">
           

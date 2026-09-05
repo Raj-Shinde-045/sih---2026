@@ -3,11 +3,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import { db } from '@/lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ShieldCheck, FileText, Pill, Clock, Download, ScanLine, Search, ArrowUpDown, Database } from 'lucide-react';
+import { ShieldCheck, FileText, Pill, Clock, Download, ScanLine, Search, ArrowUpDown } from 'lucide-react';
 
 export default function PatientDashboard() {
   const [isTapped, setIsTapped] = useState(false);
@@ -15,7 +15,6 @@ export default function PatientDashboard() {
   const [activeTab, setActiveTab] = useState<'overview' | 'all'>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
-  const [isInjecting, setIsInjecting] = useState(false);
 
   useEffect(() => {
     const patientId = 'tc-patient-001'; 
@@ -41,36 +40,6 @@ export default function PatientDashboard() {
     );
   }, [consultations, searchQuery]);
 
-  const injectDemoData = async () => {
-    setIsInjecting(true);
-    const mockData = [
-      { doctorName: "Dr. Emily Chen", hospitalName: "Metro General Hospital", symptoms: "Severe lower back pain, radiating down right leg.", diagnosis: "Sciatica", medicines: "Ibuprofen 400mg 1-1-1, Muscle relaxant at night. Physical therapy.", daysAgo: 120 },
-      { doctorName: "Dr. Marcus Thorne", hospitalName: "Oakridge Dental Clinic", symptoms: "Toothache in lower right molar, sensitivity to cold.", diagnosis: "Dental Caries", medicines: "Amoxicillin 500mg 1-1-1 for 5 days. Scheduled for filling.", daysAgo: 85 },
-      { doctorName: "Dr. Sarah Jenkins", hospitalName: "City Hospital", symptoms: "Persistent dry cough, mild fever, fatigue.", diagnosis: "Viral Bronchitis", medicines: "Cough suppressant syrup, Paracetamol 500mg as needed.", daysAgo: 40 },
-      { doctorName: "Dr. James Wilson", hospitalName: "Peak Orthopedics", symptoms: "Twisted ankle during sports, swelling, inability to bear weight.", diagnosis: "Grade 2 Ankle Sprain", medicines: "R.I.C.E protocol. Ace bandage. Ibuprofen 400mg.", daysAgo: 210 },
-      { doctorName: "Dr. Linda Gupta", hospitalName: "Sunrise Dermatology", symptoms: "Red, itchy rash on both forearms.", diagnosis: "Contact Dermatitis", medicines: "Hydrocortisone 1% cream applied twice daily.", daysAgo: 310 },
-      { doctorName: "Dr. Robert Singh", hospitalName: "TapCare General", symptoms: "Annual physical checkup. No acute complaints.", diagnosis: "Healthy / Routine Checkup", medicines: "Multivitamins daily. Recommended 30 mins cardio.", daysAgo: 15 },
-      { doctorName: "Dr. Amanda Torres", hospitalName: "Valley Eye Center", symptoms: "Blurry vision when reading, mild headaches.", diagnosis: "Presbyopia", medicines: "Prescribed reading glasses (+1.50). Artificial tears.", daysAgo: 400 },
-      { doctorName: "Dr. William Davies", hospitalName: "CardioCare Institute", symptoms: "Occasional chest tightness after heavy meals, heartburn.", diagnosis: "GERD", medicines: "Omeprazole 20mg once daily before breakfast.", daysAgo: 60 }
-    ];
-    
-    try {
-      for (const record of mockData) {
-        const date = new Date();
-        date.setDate(date.getDate() - record.daysAgo);
-        await addDoc(collection(db, 'consultations'), {
-          patientId: 'tc-patient-001',
-          ...record,
-          timestamp: Timestamp.fromDate(date)
-        });
-      }
-      alert("Successfully injected 8 historical medical records into the vault!");
-    } catch (e) {
-      console.error(e);
-      alert("Failed to inject data.");
-    }
-    setIsInjecting(false);
-  };
 
   if (!isTapped) {
     return (
@@ -154,16 +123,6 @@ export default function PatientDashboard() {
               </div>
               <p className="text-emerald-100 text-base font-medium max-w-md">Your highly secure medical data is unlocked. You have {consultations.length} total records securely stored.</p>
             </div>
-            {consultations.length < 5 && (
-              <Button 
-                onClick={injectDemoData} 
-                disabled={isInjecting}
-                variant="outline" 
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-md"
-              >
-                <Database className="mr-2 h-4 w-4" /> {isInjecting ? 'Injecting...' : 'Inject Demo History'}
-              </Button>
-            )}
           </div>
         </section>
 
