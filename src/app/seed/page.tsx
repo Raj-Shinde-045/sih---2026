@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { db } from '@/lib/firebase';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, doc, setDoc, addDoc } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 
 const RECORDS = [
   { doctorName: 'Dr. Sarah Jenkins',  hospitalName: 'City Hospital',          diagnosis: 'Dengue Fever (NS1+)',                  medicines: 'Paracetamol 500mg every 6hrs, ORS sachets. No NSAIDs.',               daysAgo: 8   },
@@ -20,84 +19,50 @@ const RECORDS = [
   { doctorName: 'Dr. Robert Singh',   hospitalName: 'TapCare General',         diagnosis: 'Urinary Tract Infection',               medicines: 'Nitrofurantoin 100mg BD 7 days. 3L water daily.',                    daysAgo: 580 },
 ];
 
-const ACCOUNTS = [
-  { email: 'patient@tapcare.in',        password: 'tapcare@123', name: 'Rahul Sharma',      role: 'patient', patientId: 'tc-patient-001' },
-  { email: 'priya.patient@tapcare.in',  password: 'tapcare@123', name: 'Priya Mehta',        role: 'patient', patientId: 'tc-patient-002' },
-  { email: 'arjun.patient@tapcare.in',  password: 'tapcare@123', name: 'Arjun Nair',         role: 'patient', patientId: 'tc-patient-003' },
-  { email: 'doctor@tapcare.in',         password: 'tapcare@123', name: 'Dr. Sarah Jenkins',  role: 'doctor' },
-  { email: 'cardiac.doctor@tapcare.in', password: 'tapcare@123', name: 'Dr. William Davies', role: 'doctor' },
-  { email: 'ortho.doctor@tapcare.in',   password: 'tapcare@123', name: 'Dr. James Wilson',   role: 'doctor' },
-  { email: 'admin@tapcare.in',          password: 'tapcare@123', name: 'Admin TapCare',      role: 'admin' },
+const PATIENT_IDS = [
+  { id: 'tc-patient-001', name: 'Rahul Sharma',  records: RECORDS },
+  { id: 'tc-patient-002', name: 'Priya Mehta',   records: RECORDS.filter((_, i) => i % 2 === 0) },
+  { id: 'tc-patient-003', name: 'Arjun Nair',    records: RECORDS.filter((_, i) => i % 3 !== 1) },
 ];
 
 export default function SeedPage() {
   const [log, setLog] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
+  const [total, setTotal] = useState(0);
 
   const addLog = (msg: string) => setLog(prev => [...prev, msg]);
 
-  const signInOrCreate = async (email: string, password: string) => {
-    const auth = getAuth();
-    try {
-      return await signInWithEmailAndPassword(auth, email, password);
-    } catch {
-      return await createUserWithEmailAndPassword(auth, email, password);
-    }
-  };
-
   const runSeed = async () => {
     setRunning(true);
-    setLog([]);
-    let consultationCount = 0;
+    setLog(['📋 Writing consultation records to Firestore...', '(No login needed — uses your existing session)']);
+    let count = 0;
 
     try {
-      // ── Step 1: Create accounts one-by-one (sequential to avoid rate limits) ──
-      addLog('🔐 Creating accounts (sequential)...');
-      for (const account of ACCOUNTS) {
-        try {
-          const cred = await signInOrCreate(account.email, account.password);
-          const uid = cred.user.uid;
-          const profile: Record<string, any> = { email: account.email, name: account.name, role: account.role };
-          if (account.patientId) profile.patientId = account.patientId;
-          await setDoc(doc(db, 'users', uid), profile, { merge: true });
-          if (account.patientId) {
-            await setDoc(doc(db, 'patients', account.patientId), { uid, ...profile }, { merge: true });
-          }
-          addLog(`✅ ${account.role}: ${account.name}`);
-        } catch (e: any) {
-          addLog(`⚠️ ${account.name}: ${e.message}`);
-        }
-      }
-
-      // ── Step 2: Write consultation records ────────────────────────────────────
-      addLog('📋 Seeding medical records...');
-      const patientSets = [
-        { id: 'tc-patient-001', records: RECORDS },
-        { id: 'tc-patient-002', records: RECORDS.filter((_, i) => i % 2 === 0) },
-        { id: 'tc-patient-003', records: RECORDS.filter((_, i) => i % 3 !== 1) },
-      ];
-
-      for (const { id: patientId, records } of patientSets) {
-        for (const r of records) {
+      for (const patient of PATIENT_IDS) {
+        addLog(`⏳ Writing ${patient.records.length} records for ${patient.name}...`);
+        for (const r of patient.records) {
           const date = new Date();
           date.setDate(date.getDate() - r.daysAgo);
           const { daysAgo, ...rest } = r;
           await addDoc(collection(db, 'consultations'), {
             ...rest,
-            patientId,
-            symptoms: 'Patient reported symptoms as noted in diagnosis.',
+            patientId: patient.id,
+            symptoms: 'Patient presented with symptoms as noted in diagnosis.',
             timestamp: date,
           });
-          consultationCount++;
+          count++;
+          setTotal(count);
         }
-        addLog(`✅ ${records.length} records → ${patientId}`);
+        addLog(`✅ Done — ${patient.name} (${patient.records.length} records)`);
       }
 
-      addLog(`🎉 Done! ${ACCOUNTS.length} accounts + ${consultationCount} records seeded.`);
+      addLog(`🎉 Seeded ${count} total consultation records!`);
+      addLog('👉 Go to tapcare-navy.vercel.app → Patient login → Tap card → See all records');
       setDone(true);
     } catch (e: any) {
-      addLog(`❌ Fatal error: ${e.message}`);
+      addLog(`❌ Error: ${e.message}`);
+      addLog('Make sure you are logged in to the app first, then retry.');
     }
 
     setRunning(false);
@@ -105,35 +70,49 @@ export default function SeedPage() {
 
   return (
     <div style={{ fontFamily: 'monospace', padding: 40, maxWidth: 700, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 8 }}>🌱 TapCare — Seed Database</h1>
-      <p style={{ color: '#666', marginBottom: 24 }}>
-        Creates 7 demo accounts + {RECORDS.length * 3} consultation records. Run once before demo.
+      <h1 style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 8 }}>📋 TapCare — Seed Consultations</h1>
+      <p style={{ color: '#555', marginBottom: 8 }}>
+        Writes <strong>{RECORDS.length * 3} consultation records</strong> across 3 demo patients directly to Firestore.
+      </p>
+      <p style={{ color: '#e55', fontSize: 13, marginBottom: 24 }}>
+        ⚠️ Make sure you are <strong>logged in to TapCare</strong> first (any role), then come back here and click Run.
       </p>
 
-      {!done && (
-        <button
-          onClick={runSeed}
-          disabled={running}
-          style={{
-            background: running ? '#aaa' : '#4f46e5',
-            color: 'white', border: 'none',
-            padding: '12px 32px', borderRadius: 8,
-            fontSize: 16, cursor: running ? 'not-allowed' : 'pointer', marginBottom: 24,
-          }}
-        >
-          {running ? '⏳ Running...' : '🚀 Run Seed Now'}
-        </button>
-      )}
-
-      {done && (
-        <div style={{ background: '#d1fae5', border: '2px solid #6ee7b7', borderRadius: 8, padding: 16, marginBottom: 24 }}>
-          <strong>✅ All done! Go to <a href="/" style={{ color: '#4f46e5' }}>tapcare-navy.vercel.app</a> to demo.</strong>
-        </div>
-      )}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+        {!done ? (
+          <button
+            onClick={runSeed}
+            disabled={running}
+            style={{
+              background: running ? '#aaa' : '#059669',
+              color: 'white', border: 'none',
+              padding: '12px 32px', borderRadius: 8,
+              fontSize: 16, cursor: running ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {running ? `⏳ Writing... (${total} records so far)` : '🚀 Seed Consultations'}
+          </button>
+        ) : (
+          <a href="/" style={{
+            background: '#4f46e5', color: 'white',
+            padding: '12px 32px', borderRadius: 8, fontSize: 16,
+            textDecoration: 'none', display: 'inline-block'
+          }}>
+            ✅ Done — Go to App →
+          </a>
+        )}
+        <a href="/" style={{
+          background: '#f1f5f9', color: '#334155',
+          padding: '12px 24px', borderRadius: 8, fontSize: 14,
+          textDecoration: 'none', display: 'inline-block', border: '1px solid #e2e8f0'
+        }}>
+          ← Back to App
+        </a>
+      </div>
 
       <div style={{
         background: '#1e1e1e', color: '#d4d4d4', borderRadius: 8,
-        padding: 16, minHeight: 200, fontSize: 13, lineHeight: 2,
+        padding: 16, minHeight: 180, fontSize: 13, lineHeight: 2,
         overflowY: 'auto', maxHeight: 400,
       }}>
         {log.length === 0
